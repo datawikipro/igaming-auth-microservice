@@ -1,69 +1,67 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: igaming-auth
-  namespace: default
+  name: igaming-auth-microservice
+  namespace: igaming-dev
+  labels:
+    app: igaming-auth-microservice
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: igaming-auth
+      app: igaming-auth-microservice
   template:
     metadata:
       labels:
-        app: igaming-auth
+        app: igaming-auth-microservice
     spec:
       containers:
-        - name: igaming-auth
+        - name: igaming-auth-microservice
           image: ghcr.io/datawikipro/igaming-auth-microservice:latest
           ports:
             - containerPort: 8000
           env:
             - name: MDM_DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: igaming-auth-secrets
-                  key: MDM_DB_HOST
+              value: "auth-postgres"
             - name: MDM_DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: igaming-auth-secrets
-                  key: MDM_DB_PORT
+              value: "5432"
             - name: MDM_DB_NAME
               valueFrom:
                 secretKeyRef:
-                  name: igaming-auth-secrets
-                  key: MDM_DB_NAME
+                  name: auth-postgres-secret
+                  key: POSTGRES_DB
             - name: MDM_DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: igaming-auth-secrets
-                  key: MDM_DB_USER
+                  name: auth-postgres-secret
+                  key: POSTGRES_USER
             - name: MDM_DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: igaming-auth-secrets
-                  key: MDM_DB_PASSWORD
+                  name: auth-postgres-secret
+                  key: POSTGRES_PASSWORD
             - name: JWT_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: igaming-auth-secrets
                   key: JWT_SECRET_KEY
-            - name: CORS_ORIGINS
-              valueFrom:
-                secretKeyRef:
-                  name: igaming-auth-secrets
-                  key: CORS_ORIGINS
-            - name: INTERNAL_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: igaming-auth-secrets
-                  key: INTERNAL_API_KEY
             - name: BOT_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: igaming-auth-secrets
                   key: BOT_TOKEN
+            - name: INTERNAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: igaming-auth-secrets
+                  key: INTERNAL_API_KEY
+            - name: CORS_ORIGINS
+              valueFrom:
+                secretKeyRef:
+                  name: igaming-auth-secrets
+                  key: CORS_ORIGINS
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: "validate"
           resources:
             requests:
               memory: "256Mi"
@@ -75,26 +73,30 @@ spec:
             httpGet:
               path: /actuator/health
               port: 8000
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 30
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /actuator/health
               port: 8000
-            initialDelaySeconds: 15
+            initialDelaySeconds: 30
             periodSeconds: 10
+            failureThreshold: 3
       imagePullSecrets:
         - name: ghcr-secret
 ---
+# Service named carrier-auth so existing bot/portal keep working without changes
 apiVersion: v1
 kind: Service
 metadata:
-  name: igaming-auth
-  namespace: default
+  name: carrier-auth
+  namespace: igaming-dev
 spec:
   selector:
-    app: igaming-auth
+    app: igaming-auth-microservice
   ports:
-    - port: 8000
+    - name: http
+      port: 8002
       targetPort: 8000
   type: ClusterIP
