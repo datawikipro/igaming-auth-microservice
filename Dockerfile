@@ -3,7 +3,7 @@ FROM ghcr.io/datawikipro/igaming-build-base:latest AS build-base
 WORKDIR /base
 COPY auth-base/pom.xml .
 COPY auth-base/src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn install -DskipTests -B
+RUN mvn install -DskipTests -B
 
 # ---------- build igaming-auth-microservice ----------
 FROM ghcr.io/datawikipro/igaming-build-base:latest AS build
