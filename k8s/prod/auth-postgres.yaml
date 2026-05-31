@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: auth-postgres
+  namespace: igaming-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-postgres
+  serviceName: auth-postgres
+  template:
+    metadata:
+      labels:
+        app: auth-postgres
+    spec:
+      nodeSelector:
+        node-type: master
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          envFrom:
+            - secretRef:
+                name: auth-postgres-secret
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: auth-postgres-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: auth-postgres-data
+          persistentVolumeClaim:
+            claimName: auth-postgres-pvc
